@@ -1,0 +1,138 @@
+import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { Link } from 'react-router-dom';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import { Loader2, MapPin, ExternalLink } from 'lucide-react';
+
+// Fix leaflet marker icons
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+export default function Map() {
+    const [listings, setListings] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [userLocation, setUserLocation] = useState(null);
+
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                // Get user location
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+                        },
+                        () => {
+                            // fallback location
+                            setUserLocation([-33.9249, 18.4241]);
+                        }
+                    );
+                } else {
+                    setUserLocation([-33.9249, 18.4241]);
+                }
+
+                // Fake listings (replace with API later)
+                const fakeListings = [
+                    {
+                        id: 1,
+                        title: "iPhone 11",
+                        price: 5000,
+                        lat: -33.92,
+                        lng: 18.42,
+                        suburb: "Cape Town",
+                        images: ["https://via.placeholder.com/300"]
+                    },
+                    {
+                        id: 2,
+                        title: "Sofa",
+                        price: 2500,
+                        lat: -33.93,
+                        lng: 18.43,
+                        suburb: "Sea Point",
+                        images: ["https://via.placeholder.com/300"]
+                    }
+                ];
+
+                setListings(fakeListings);
+
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadData();
+    }, []);
+
+    if (loading || !userLocation) {
+        return (
+            <div className="h-[80vh] flex items-center justify-center bg-gray-100 rounded-xl">
+                <div className="text-center">
+                    <Loader2 className="animate-spin mx-auto mb-2" />
+                    <p>Loading map...</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="h-[80vh] rounded-xl overflow-hidden border relative">
+
+            <MapContainer
+                center={userLocation}
+                zoom={13}
+                style={{ height: "100%", width: "100%" }}
+            >
+                <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+
+                {/* User location */}
+                <Marker position={userLocation}>
+                    <Popup>You are here</Popup>
+                </Marker>
+
+                {/* Listings */}
+                {listings.map(item => (
+                    <Marker key={item.id} position={[item.lat, item.lng]}>
+                        <Popup>
+                            <div className="w-48">
+                                <img
+                                    src={item.images[0]}
+                                    className="w-full h-24 object-cover rounded"
+                                />
+                                <h3 className="font-bold mt-2">{item.title}</h3>
+                                <p className="text-sm">R{item.price}</p>
+
+                                <div className="flex items-center text-xs text-gray-500 mt-1">
+                                    <MapPin size={12} /> {item.suburb}
+                                </div>
+
+                                <Link to={`/listing/${item.id}`}>
+                                    <button className="mt-2 w-full bg-indigo-600 text-white py-1 rounded flex items-center justify-center gap-1">
+                                        View <ExternalLink size={12} />
+                                    </button>
+                                </Link>
+                            </div>
+                        </Popup>
+                    </Marker>
+                ))}
+            </MapContainer>
+
+            {/* Mobile button */}
+            <div className="absolute top-3 right-3">
+                <Link to="/">
+                    <button className="bg-white px-3 py-1 rounded shadow text-sm">
+                        Show List
+                    </button>
+                </Link>
+            </div>
+        </div>
+    );
+}
