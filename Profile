@@ -1,0 +1,214 @@
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, MapPin, Calendar, LogOut, Edit, UploadCloud } from "lucide-react";
+import { toast } from "sonner";
+
+export default function Profile() {
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [listings, setListings] = useState([]);
+    const [isEditing, setIsEditing] = useState(false);
+    const [formData, setFormData] = useState({});
+
+    // Simulated fetch (replace with your API)
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                // Fake user data
+                const fakeUser = {
+                    full_name: "John Doe",
+                    email: "john@example.com",
+                    suburb: "Edenvale",
+                    bio: "Just a seller",
+                    created_date: new Date(),
+                    avatar_url: ""
+                };
+
+                setUser(fakeUser);
+                setFormData(fakeUser);
+
+                // Fake listings
+                setListings([
+                    {
+                        id: 1,
+                        title: "iPhone 11",
+                        price: 5000,
+                        images: ["https://via.placeholder.com/300"],
+                        status: "active"
+                    }
+                ]);
+
+            } catch (err) {
+                console.error(err);
+                toast.error("Failed to load profile");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadData();
+    }, []);
+
+    // Simulated avatar upload
+    const handleAvatarUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const imageUrl = URL.createObjectURL(file);
+
+        setUser(prev => ({ ...prev, avatar_url: imageUrl }));
+        toast.success("Profile picture updated");
+    };
+
+    const handleSaveProfile = () => {
+        try {
+            setUser(prev => ({ ...prev, ...formData }));
+            setIsEditing(false);
+            toast.success("Profile updated");
+        } catch (err) {
+            console.error(err);
+            toast.error("Update failed");
+        }
+    };
+
+    const handleDeleteListing = (id) => {
+        if (!confirm("Delete this listing?")) return;
+
+        setListings(prev => prev.filter(item => item.id !== id));
+        toast.success("Listing deleted");
+    };
+
+    const handleLogout = () => {
+        // Replace with real logout
+        toast.info("Logged out");
+    };
+
+    if (loading) {
+        return (
+            <div className="flex justify-center p-12">
+                <Loader2 className="animate-spin" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="max-w-4xl mx-auto space-y-8">
+
+            {/* Profile Header */}
+            <div className="bg-white p-6 rounded-xl border flex gap-6 items-center">
+                <div className="relative">
+                    <Avatar className="w-24 h-24">
+                        <AvatarImage src={user?.avatar_url} />
+                        <AvatarFallback>
+                            {user?.full_name?.[0]}
+                        </AvatarFallback>
+                    </Avatar>
+
+                    <label className="absolute bottom-0 right-0 bg-indigo-600 text-white p-2 rounded-full cursor-pointer">
+                        <UploadCloud size={14} />
+                        <input type="file" hidden onChange={handleAvatarUpload} />
+                    </label>
+                </div>
+
+                <div className="flex-1">
+                    {isEditing ? (
+                        <div className="space-y-3">
+                            <Input
+                                value={formData.full_name}
+                                onChange={e => setFormData({ ...formData, full_name: e.target.value })}
+                            />
+                            <Input
+                                value={formData.suburb}
+                                onChange={e => setFormData({ ...formData, suburb: e.target.value })}
+                            />
+                            <Textarea
+                                value={formData.bio}
+                                onChange={e => setFormData({ ...formData, bio: e.target.value })}
+                            />
+
+                            <div className="flex gap-2">
+                                <Button onClick={handleSaveProfile}>Save</Button>
+                                <Button variant="ghost" onClick={() => setIsEditing(false)}>Cancel</Button>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <h1 className="text-2xl font-bold">{user?.full_name}</h1>
+                            <p className="text-sm text-gray-500 flex gap-3 mt-1">
+                                <span className="flex items-center gap-1">
+                                    <MapPin size={14} /> {user?.suburb}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                    <Calendar size={14} /> Joined {new Date(user.created_date).getFullYear()}
+                                </span>
+                            </p>
+                            <p className="mt-2">{user?.bio}</p>
+
+                            <Button variant="outline" className="mt-2" onClick={() => setIsEditing(true)}>
+                                <Edit size={14} /> Edit Profile
+                            </Button>
+                        </>
+                    )}
+                </div>
+            </div>
+
+            {/* Tabs */}
+            <Tabs defaultValue="listings">
+                <TabsList>
+                    <TabsTrigger value="listings">My Listings ({listings.length})</TabsTrigger>
+                    <TabsTrigger value="sold">Sold</TabsTrigger>
+                    <TabsTrigger value="saved">Saved</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="listings">
+                    {listings.length === 0 ? (
+                        <div className="text-center p-6 border rounded">
+                            <p>No listings yet</p>
+                            <Link to="/create">
+                                <Button className="mt-3">Start Selling</Button>
+                            </Link>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-4 mt-4">
+                            {listings.map(item => (
+                                <div key={item.id} className="border rounded p-3">
+                                    <img src={item.images[0]} className="w-full h-32 object-cover rounded" />
+                                    <h3 className="font-bold mt-2">{item.title}</h3>
+                                    <p>R{item.price}</p>
+
+                                    <div className="flex gap-2 mt-2">
+                                        <Button size="sm">View</Button>
+                                        <Button size="sm" variant="destructive" onClick={() => handleDeleteListing(item.id)}>
+                                            Delete
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </TabsContent>
+
+                <TabsContent value="sold">
+                    <p className="text-center p-6 text-gray-400">No sold items yet</p>
+                </TabsContent>
+
+                <TabsContent value="saved">
+                    <p className="text-center p-6 text-gray-400">No saved items</p>
+                </TabsContent>
+            </Tabs>
+
+            {/* Logout */}
+            <div className="flex justify-end">
+                <Button variant="ghost" onClick={handleLogout}>
+                    <LogOut size={14} /> Logout
+                </Button>
+            </div>
+        </div>
+    );
+}
